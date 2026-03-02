@@ -15,17 +15,15 @@ Feature Engineering: Selección de variables clave como ubicación (Latitud/Long
 Modelado: Implementación y evaluación de un algoritmo de Random Forest Regressor para la predicción de precios.
 
 🗂️ Estructura del Repositorio
-data/: (Opcional) Contiene el dataset original y procesado.
-
-notebooks/:
-
-main.ipynb: Notebook principal con el flujo completo (Limpieza, EDA y Modelado).
-
-01_Proyecto_ML.ipynb: Documentación del planteamiento técnico y comparativa de modelos.
-
-src/: Scripts de Python para procesamiento.
-
-models/: Archivos .pkl con el modelo entrenado.
+├── src/                # El directorio source que contiene el resto de carpetas
+│   ├── data_sample/    # Archivos de datos de muestra (máx. 5MB) que permitan ejecutar el código
+│   ├── img/            # Imágenes utilizadas en el proyecto
+│   ├── models/         # Modelos guardados en formato pickle o joblib
+│   ├── notebooks/      # Notebooks de desarrollo y pruebas
+│   ├── utils/          # Módulos, funciones auxiliares o clases creadas para el proyecto
+├── main.ipynb          # Notebook final: claro, conciso y bien estructurado
+├── Presentacion.pdf    # Documento soporte de la exposición en vídeo
+├── README.md           # Fichero README resumen del proyecto
 
 📊 Insights Principales (Resultados del EDA)
 (Aquí puedes añadir los hallazgos reales de tu notebook, por ejemplo:)
