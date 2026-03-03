@@ -24,6 +24,7 @@ Modelado: Implementación y evaluación de un algoritmo de Random Forest Regress
 ├── main.ipynb          # Notebook final: claro, conciso y bien estructurado
 ├── Presentacion.pdf    # Documento soporte de la exposición en vídeo
 ├── README.md           # Fichero README resumen del proyecto
+├── Dataframe.xlsx      # Dataframe 
 
 📊 Insights Principales (Resultados del EDA)
 (Aquí puedes añadir los hallazgos reales de tu notebook, por ejemplo:)
