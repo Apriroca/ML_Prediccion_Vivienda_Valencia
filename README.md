@@ -53,7 +53,15 @@ git clone https://github.com/Apriroca/ML_Prediccion_Vivienda_Valencia
 Instala las dependencias:
 
 Bash
-pip install -r requirements.txt
+pip install 
+-pandas
+-numpy
+-matplotlib
+-seaborn
+-scikit-learn
+-openpyxl
+-jupyter
+
 Ejecuta el notebook principal:
 
 Bash
