@@ -19,7 +19,7 @@ Modelado: Implementación y evaluación de un algoritmo de Random Forest Regress
 │   ├── data_sample/    # Archivos de datos de muestra (máx. 5MB) que permitan ejecutar el código
 │   ├── img/            # Imágenes utilizadas en el proyecto
 │   ├── models/         # Modelos guardados en formato pickle o joblib
-│   ├── notebooks/      # Notebooks de desarrollo y pruebas
+│   ├── notebooks/      # Notebooks del primer EDA
 │   ├── utils/          # Módulos, funciones auxiliares o clases creadas para el proyecto
 ├── main.ipynb          # Notebook final: claro, conciso y bien estructurado
 ├── Presentacion.pdf    # Documento soporte de la exposición en vídeo
