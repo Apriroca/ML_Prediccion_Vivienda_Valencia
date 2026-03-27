@@ -68,4 +68,4 @@ Bash
 jupyter notebook notebooks/main.ipynb
 
 📈 Conclusiones del Modelo
-El modelo final basado en Random Forest permite explicar una gran parte de la variabilidad de los precios (R² score). El análisis de importancia de variables (Feature Importance) confirmó que la ubicación geográfica y el tamaño de la vivienda son los pilares fundamentales del valor inmobiliario en Valencia.
+El modelo final basado en XGBOOST permite explicar una gran parte de la variabilidad de los precios (R² score). El análisis de importancia de variables (Feature Importance) confirmó que la ubicación geográfica y el tamaño de la vivienda son los pilares fundamentales del valor inmobiliario en Valencia.
