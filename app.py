@@ -2,9 +2,11 @@ from flask import Flask, jsonify, request
 import os
 import pickle
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
-import numpy as np
+# Asegúrate de tener lgbm instalado si es el modelo que usaste en el notebook
+# from lightgbm import LGBMRegressor 
 
 os.chdir(os.path.dirname(__file__))
 
@@ -12,92 +14,117 @@ app = Flask(__name__)
 
 MODEL_PATH = 'modelo_random_forest.pkl'
 
-# Carga el modelo al iniciar la API
-model = None
-if os.path.exists(MODEL_PATH):
-    with open(MODEL_PATH, 'rb') as f:
-        model = pickle.load(f)
+# --- CONFIGURACIÓN BASADA EN TU MAIN.IPYNB ---
+# Definimos las columnas numéricas que usas
+features_num = [
+    'Metros cuadrados', 'Habitaciones', 'Baños', 'Planta', 
+    'Ascensor', 'Antigüedad', 'Estado_conservacion' # Ajusta estos nombres a tus features_num reales
+]
+
+# Definimos los prefijos de tus columnas One-Hot Encoding
+prefixes_ohe = [
+    'Fuente_', 'Distrito_', 'Barrio_', 'Anunciante_',
+    'Aire acondicionado_', 'Ascensor_', 'Garaje_', 'Trastero_',
+    'Terraza_', 'Piscina_', 'Zonas verdes_', 'Zona deportiva_', 'Demanda_'
+]
+
+# Función para cargar el modelo
+def load_model():
+    if os.path.exists(MODEL_PATH):
+        with open(MODEL_PATH, 'rb') as f:
+            return pickle.load(f)
+    return None
+
+model = load_model()
 
 @app.route("/", methods=["GET"])
 def hello():
-    return "Bienvenido a la API del Modelo Inmobiliario"
+    return "API de Predicción Inmobiliaria (Adaptada de main.ipynb)"
 
 @app.route("/api/v1/predict", methods=["POST"])
 def predict():
     if model is None:
-        return jsonify({"error": "El modelo no está cargado. Reentrena primero."}), 400
+        return jsonify({"error": "Modelo no cargado."}), 400
 
     data = request.get_json()
     if not data:
-        return jsonify({"error": "No se enviaron datos."}), 400
+        return jsonify({"error": "No se proporcionaron datos."}), 400
 
-    input_data = pd.DataFrame([data])
+    # Convertimos la entrada en DataFrame
+    input_df = pd.DataFrame([data])
     
     try:
+        # Recuperamos las features que el modelo espera (las que usaste en el entrenamiento)
+        # Si usaste model.fit(X, y), scikit-learn guarda los nombres en feature_names_in_
         if hasattr(model, 'feature_names_in_'):
-            expected_cols = model.feature_names_in_
-            input_data = input_data.reindex(columns=expected_cols, fill_value=0)
-
-        prediction = model.predict(input_data)
-        return jsonify({'prediccion_precio_unitario': float(prediction[0])})
+            expected_features = model.feature_names_in_
+            # Reindexamos: añade las columnas que faltan con 0 y elimina las que sobran
+            input_df = input_df.reindex(columns=expected_features, fill_value=0)
+        
+        prediction = model.predict(input_df)
+        
+        return jsonify({
+            'precio_unitario_predicho': float(prediction[0]),
+            'status': 'success'
+        })
     
     except Exception as e:
-        return jsonify({"error": f"Error al predecir: {str(e)}"}), 500
-
+        return jsonify({"error": f"Error en la predicción: {str(e)}"}), 500
 
 @app.route("/api/v1/retrain", methods=["POST"])
 def retrain():
     global model
-    target_col = 'Precio unitario'
+    target = 'Precio unitario'
     
-    # 1. Recibimos el payload JSON que contiene los datos
     payload = request.get_json()
-    
-    if not payload or 'datos_nuevos' not in payload:
-        return jsonify({"error": "Debes enviar un JSON con la clave 'datos_nuevos' que contenga una lista de registros."}), 400
+    if not payload or 'datos' not in payload:
+        return jsonify({"error": "Envía los datos en la clave 'datos'"}), 400
 
-    # 2. Convertimos la lista de diccionarios en un DataFrame
-    data = pd.DataFrame(payload['datos_nuevos'])
+    # Creamos el DataFrame con los nuevos datos enviados por el usuario
+    new_data = pd.DataFrame(payload['datos'])
 
-    if target_col not in data.columns:
-        return jsonify({"error": f"La columna '{target_col}' no existe en los datos enviados."}), 400
-
-    # 3. Separar X e y
-    X = data.drop(columns=[target_col])
-    y = data[target_col]
-
-    # Validar que haya suficientes datos para dividir
-    if len(data) < 5:
-        return jsonify({"error": "No hay suficientes datos para reentrenar. Envía al menos 5 registros."}), 400
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+    if target not in new_data.columns:
+        return jsonify({"error": f"Falta la columna objetivo: {target}"}), 400
 
     try:
-        # 4. Entrenar y evaluar
-        model.fit(X_train, y_train)
-        predictions = model.predict(X_test)
+        # Aplicamos la misma lógica de selección de columnas de tu notebook
+        cols_ohe = [c for c in new_data.columns if any(
+            c.startswith(p) for p in prefixes_ohe
+        )]
         
-        rmse = np.sqrt(mean_squared_error(y_test, predictions))
-        mape = mean_absolute_percentage_error(y_test, predictions)
+        # 'features_num' debe estar presente en los datos enviados
+        features = [f for f in features_num if f in new_data.columns] + cols_ohe
         
-        # 5. Entrenar con el dataset completo para producción
-        model.fit(X, y)
+        X = new_data[features].copy()
+        y = new_data[target]
 
-        # 6. Guardar el modelo actualizado
+        # Splitting (mismo random_state que tu notebook)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+
+        # Reentrenamos (el modelo mantiene su configuración, ej. hiperparámetros de LightGBM)
+        model.fit(X_train, y_train)
+        
+        # Métricas
+        preds = model.predict(X_test)
+        rmse = np.sqrt(mean_squared_error(y_test, preds))
+        mape = mean_absolute_percentage_error(y_test, preds)
+
+        # Guardar modelo actualizado
         with open(MODEL_PATH, 'wb') as f:
             pickle.dump(model, f)
 
         return jsonify({
-            "message": "Modelo reentrenado exitosamente con los datos proporcionados.",
-            "filas_procesadas": len(data),
-            "metrics": {
-                "RMSE": rmse,
-                "MAPE": mape
+            "message": "Modelo actualizado con éxito",
+            "features_usadas": len(features),
+            "metricas": {
+                "RMSE": float(rmse),
+                "MAPE": float(mape)
             }
         })
-    except Exception as e:
-        return jsonify({"error": f"Error durante el reentrenamiento: {str(e)}"}), 500
 
+    except Exception as e:
+        return jsonify({"error": f"Error reentrenando: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # El modelo debe estar en la misma carpeta que este script
+    app.run(debug=True, port=5000)
