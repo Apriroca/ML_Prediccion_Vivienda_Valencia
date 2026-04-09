@@ -62,50 +62,260 @@ def preprocess(data: dict) -> pd.DataFrame:
 @app.route('/', methods=['GET'])
 def hello():
     return """
-    <h1>🏠 API de Predicción de Precios de Viviendas en Valencia</h1>
-    <p>Modelo: <b>XGBoost Tuned</b> — predice el precio unitario (€/m²) a partir
-    de las características de la vivienda.</p>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictor de Viviendas Valencia</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #333; }
 
-    <hr>
-    <h2>Endpoints</h2>
+        header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white; padding: 30px 40px;
+        }
+        header h1 { font-size: 1.8rem; }
+        header p  { margin-top: 6px; opacity: 0.75; font-size: 0.95rem; }
 
-    <h3>📌 GET /api/v1/predict</h3>
-    <p>Devuelve el precio unitario estimado (€/m²) y el precio total.</p>
+        .container { max-width: 860px; margin: 40px auto; padding: 0 20px; }
 
-    <b>Parámetros obligatorios:</b>
-    <ul>
-        <li><code>latitud</code> — Ej: 39.47</li>
-        <li><code>longitud</code> — Ej: -0.37</li>
-        <li><code>dormitorios</code> — Ej: 3</li>
-        <li><code>banos</code> — Ej: 2</li>
-        <li><code>superficie</code> — m². Ej: 90</li>
-    </ul>
+        .card {
+            background: white; border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 30px; margin-bottom: 24px;
+        }
+        .card h2 { font-size: 1.1rem; color: #1a1a2e; margin-bottom: 20px;
+                   border-bottom: 2px solid #e8edf2; padding-bottom: 10px; }
 
-    <b>Parámetros opcionales:</b>
-    <ul>
-        <li><code>fuente</code> — Fotocasa / Idealista</li>
-        <li><code>anunciante</code> — Particular / Agencia</li>
-        <li><code>aire_acondicionado</code> — Sí / No</li>
-        <li><code>ascensor</code> — Sí / No</li>
-        <li><code>garaje</code> — Sí / No</li>
-        <li><code>trastero</code> — Sí / No</li>
-        <li><code>terraza</code> — Sí / No</li>
-        <li><code>piscina</code> — Sí / No</li>
-        <li><code>zonas_verdes</code> — Sí / No</li>
-        <li><code>zona_deportiva</code> — Sí / No</li>
-        <li><code>demanda</code> — Alta / Media / Baja / Muy baja</li>
-    </ul>
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-    <b>Ejemplo:</b><br>
-    <code>/api/v1/predict?latitud=39.47&longitud=-0.37&dormitorios=3&banos=2&superficie=90&demanda=Alta&ascensor=Sí&aire_acondicionado=Sí</code>
+        .field label { display: block; font-size: 0.82rem; font-weight: 600;
+                       color: #555; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+        .field input, .field select {
+            width: 100%; padding: 10px 12px; border: 1.5px solid #dde3ea;
+            border-radius: 8px; font-size: 0.95rem; transition: border 0.2s;
+        }
+        .field input:focus, .field select:focus {
+            outline: none; border-color: #4f8ef7;
+        }
 
-    <b>Respuesta:</b>
-    <pre>{"precio_total_estimado": 270000.0, "precio_unitario_eur_m2": 3000.0}</pre>
+        .btn {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, #4f8ef7, #1a5fd4);
+            color: white; border: none; border-radius: 8px; font-size: 1rem;
+            font-weight: 600; cursor: pointer; margin-top: 10px; transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.9; }
 
-    <hr>
-    <h3>📌 GET /api/v1/retrain</h3>
-    <p>Reentrena el modelo con nuevos datos si existe la carpeta
-    <code>src/data_sample/ventas_new/</code> con ficheros CSV.</p>
+        #resultado { display: none; }
+        .resultado-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
+        .metrica {
+            background: #f0f4f8; border-radius: 10px; padding: 20px; text-align: center;
+        }
+        .metrica .valor { font-size: 1.9rem; font-weight: 700; color: #1a5fd4; }
+        .metrica .etiqueta { font-size: 0.8rem; color: #777; margin-top: 4px; text-transform: uppercase; }
+
+        .error-box {
+            background: #fff0f0; border: 1px solid #f5c6c6; border-radius: 8px;
+            padding: 14px; color: #c0392b; font-size: 0.9rem; margin-top: 12px;
+        }
+
+        .tag {
+            display: inline-block; background: #eef3ff; color: #1a5fd4;
+            border-radius: 20px; padding: 3px 10px; font-size: 0.78rem; font-weight: 600;
+            margin-right: 6px; margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🏠 Predictor de Precios de Viviendas — Valencia</h1>
+    <p>Modelo XGBoost Tuned · Predice el precio unitario (€/m²) y el precio total estimado</p>
+</header>
+
+<div class="container">
+
+    <!-- FORMULARIO -->
+    <div class="card">
+        <h2>Características de la vivienda</h2>
+        <div class="grid">
+            <div class="field">
+                <label>Latitud *</label>
+                <input type="number" id="latitud" step="0.0001" placeholder="39.4699" value="39.4699">
+            </div>
+            <div class="field">
+                <label>Longitud *</label>
+                <input type="number" id="longitud" step="0.0001" placeholder="-0.3763" value="-0.3763">
+            </div>
+            <div class="field">
+                <label>Dormitorios *</label>
+                <input type="number" id="dormitorios" min="0" max="20" placeholder="3" value="3">
+            </div>
+            <div class="field">
+                <label>Baños *</label>
+                <input type="number" id="banos" min="0" max="10" placeholder="2" value="2">
+            </div>
+            <div class="field">
+                <label>Superficie (m²) *</label>
+                <input type="number" id="superficie" min="10" placeholder="90" value="90">
+            </div>
+            <div class="field">
+                <label>Demanda</label>
+                <select id="demanda">
+                    <option value="">— Sin especificar —</option>
+                    <option value="Alta">Alta</option>
+                    <option value="Media">Media</option>
+                    <option value="Baja">Baja</option>
+                    <option value="Muy baja">Muy baja</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Fuente</label>
+                <select id="fuente">
+                    <option value="">— Sin especificar —</option>
+                    <option value="Fotocasa">Fotocasa</option>
+                    <option value="Idealista">Idealista</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Anunciante</label>
+                <select id="anunciante">
+                    <option value="">— Sin especificar —</option>
+                    <option value="Particular">Particular</option>
+                    <option value="Agencia">Agencia</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Aire acondicionado</label>
+                <select id="aire_acondicionado">
+                    <option value="">— Sin especificar —</option>
+                    <option value="Sí">Sí</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Ascensor</label>
+                <select id="ascensor">
+                    <option value="">— Sin especificar —</option>
+                    <option value="Sí">Sí</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Garaje</label>
+                <select id="garaje">
+                    <option value="">— Sin especificar —</option>
+                    <option value="Sí">Sí</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Trastero</label>
+                <select id="trastero">
+                    <option value="">— Sin especificar —</option>
+                    <option value="Sí">Sí</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Terraza</label>
+                <select id="terraza">
+                    <option value="">— Sin especificar —</option>
+                    <option value="Sí">Sí</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Piscina</label>
+                <select id="piscina">
+                    <option value="">— Sin especificar —</option>
+                    <option value="Sí">Sí</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Zonas verdes</label>
+                <select id="zonas_verdes">
+                    <option value="">— Sin especificar —</option>
+                    <option value="Sí">Sí</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Zona deportiva</label>
+                <select id="zona_deportiva">
+                    <option value="">— Sin especificar —</option>
+                    <option value="Sí">Sí</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn" onclick="predecir()">🔍 Predecir precio</button>
+    </div>
+
+    <!-- RESULTADO -->
+    <div class="card" id="resultado">
+        <h2>Resultado de la predicción</h2>
+        <div class="resultado-grid">
+            <div class="metrica">
+                <div class="valor" id="precio-unitario">—</div>
+                <div class="etiqueta">Precio unitario (€/m²)</div>
+            </div>
+            <div class="metrica">
+                <div class="valor" id="precio-total">—</div>
+                <div class="etiqueta">Precio total estimado</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+async function predecir() {
+    const params = new URLSearchParams();
+
+    const obligatorios = ['latitud', 'longitud', 'dormitorios', 'banos', 'superficie'];
+    for (const campo of obligatorios) {
+        const val = document.getElementById(campo).value;
+        if (!val) { alert('Por favor rellena todos los campos obligatorios (*)'); return; }
+        params.append(campo, val);
+    }
+
+    const opcionales = ['demanda', 'fuente', 'anunciante', 'aire_acondicionado',
+                        'ascensor', 'garaje', 'trastero', 'terraza',
+                        'piscina', 'zonas_verdes', 'zona_deportiva'];
+    for (const campo of opcionales) {
+        const val = document.getElementById(campo).value;
+        if (val) params.append(campo, val);
+    }
+
+    try {
+        const res  = await fetch('/api/v1/predict?' + params.toString());
+        const data = await res.json();
+
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+
+        const fmt = n => new Intl.NumberFormat('es-ES', {
+            style: 'currency', currency: 'EUR', maximumFractionDigits: 0
+        }).format(n);
+
+        document.getElementById('precio-unitario').textContent = fmt(data.precio_unitario_eur_m2);
+        document.getElementById('precio-total').textContent    = fmt(data.precio_total_estimado);
+        document.getElementById('resultado').style.display     = 'block';
+        document.getElementById('resultado').scrollIntoView({ behavior: 'smooth' });
+
+    } catch(e) {
+        alert('Error al conectar con la API');
+    }
+}
+</script>
+
+</body>
+</html>
     """
 
 
