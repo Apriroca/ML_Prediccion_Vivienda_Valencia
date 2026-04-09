@@ -131,7 +131,7 @@ def hello():
 
 <header>
     <h1>🏠 Predictor de Precios de Viviendas — Valencia</h1>
-    <p>Modelo XGBoost Tuned · Predice el precio unitario (€/m²) y el precio total estimado</p>
+    <p>Predice el precio (€/m²) y el precio total estimado</p>
 </header>
 
 <div class="container">
@@ -140,14 +140,58 @@ def hello():
     <div class="card">
         <h2>Características de la vivienda</h2>
         <div class="grid">
-            <div class="field">
-                <label>Latitud *</label>
-                <input type="number" id="latitud" step="0.0001" placeholder="39.4699" value="39.4699">
+            <div class="field" style="grid-column: span 2;">
+                <label>Barrio *</label>
+                <select id="barrio" onchange="actualizarCoordenadas()">
+                    <option value="">— Selecciona un barrio —</option>
+                    <option value="39.4831,-0.3769">Benimaclet</option>
+                    <option value="39.4780,-0.3530">Albors</option>
+                    <option value="39.4750,-0.3640">Amistat</option>
+                    <option value="39.4920,-0.3580">Benifaraig</option>
+                    <option value="39.4900,-0.3990">Beniferri</option>
+                    <option value="39.4990,-0.3770">Borbotó</option>
+                    <option value="39.4850,-0.3690">Camí de Vera</option>
+                    <option value="39.4720,-0.3760">Campanar</option>
+                    <option value="39.4680,-0.3740">Carme</option>
+                    <option value="39.4660,-0.3720">Ciutat Vella</option>
+                    <option value="39.4640,-0.3550">El Cabanyal</option>
+                    <option value="39.4580,-0.3530">El Canyamelar</option>
+                    <option value="39.4700,-0.3530">El Grao</option>
+                    <option value="39.4550,-0.3760">El Pla del Real</option>
+                    <option value="39.4590,-0.3870">En Corts</option>
+                    <option value="39.4530,-0.3820">Exposició</option>
+                    <option value="39.4480,-0.3790">Favara</option>
+                    <option value="39.4820,-0.3820">Fuensanta</option>
+                    <option value="39.4700,-0.3900">Jesús</option>
+                    <option value="39.4750,-0.3800">La Creu Coberta</option>
+                    <option value="39.4770,-0.3850">La Creu del Grau</option>
+                    <option value="39.4680,-0.3810">La Petxina</option>
+                    <option value="39.4650,-0.3790">La Roqueta</option>
+                    <option value="39.4630,-0.3760">La Seu</option>
+                    <option value="39.4610,-0.3780">La Xerea</option>
+                    <option value="39.4560,-0.3840">L'Hort de Senabre</option>
+                    <option value="39.4740,-0.3710">Marxalenes</option>
+                    <option value="39.4800,-0.3750">Mestalla</option>
+                    <option value="39.4510,-0.3760">Monteolivete</option>
+                    <option value="39.4870,-0.3730">Morvedre</option>
+                    <option value="39.4760,-0.3780">Nou Moles</option>
+                    <option value="39.4690,-0.3870">Patraix</option>
+                    <option value="39.4840,-0.3610">Penya-roja</option>
+                    <option value="39.4760,-0.3660">Poble Nou</option>
+                    <option value="39.4730,-0.3870">Russafa</option>
+                    <option value="39.4670,-0.3850">Sant Francesc</option>
+                    <option value="39.4860,-0.3860">Sant Pau</option>
+                    <option value="39.4790,-0.3910">Soternes</option>
+                    <option value="39.4810,-0.3780">Tormos</option>
+                    <option value="39.4880,-0.3810">Trinitat</option>
+                    <option value="39.4940,-0.3840">Torrefiel</option>
+                    <option value="39.4660,-0.3690">Velluters</option>
+                    <option value="39.4630,-0.3820">Vara de Quart</option>
+                    <option value="39.4530,-0.3700">Viveros</option>
+                </select>
             </div>
-            <div class="field">
-                <label>Longitud *</label>
-                <input type="number" id="longitud" step="0.0001" placeholder="-0.3763" value="-0.3763">
-            </div>
+            <input type="hidden" id="latitud">
+            <input type="hidden" id="longitud">
             <div class="field">
                 <label>Dormitorios *</label>
                 <input type="number" id="dormitorios" min="0" max="20" placeholder="3" value="3">
@@ -272,8 +316,20 @@ def hello():
 </div>
 
 <script>
+function actualizarCoordenadas() {
+    const barrio = document.getElementById('barrio');
+    const coords = barrio.value.split(',');
+    document.getElementById('latitud').value  = coords[0] || '';
+    document.getElementById('longitud').value = coords[1] || '';
+}
+
 async function predecir() {
     const params = new URLSearchParams();
+
+    if (!document.getElementById('barrio').value) {
+        alert('Por favor selecciona un barrio');
+        return;
+    }
 
     const obligatorios = ['latitud', 'longitud', 'dormitorios', 'banos', 'superficie'];
     for (const campo of obligatorios) {
